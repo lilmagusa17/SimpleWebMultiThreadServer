@@ -21,35 +21,45 @@ final class SolicitudHttp implements Runnable {
         }
     }
 
+
     public void procesarSolicitud() throws Exception {
-        BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream()); // Usado para strings y bytes
+        BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream()); // Usado para strings y bytes - configura el flujo de salida para enviar datos al cliente
 
         BufferedReader in = new BufferedReader(
-                new InputStreamReader(socket.getInputStream()));
+                new InputStreamReader(socket.getInputStream())); //configura el flujo en entrada para leer el request del client
 
         String lineaDeLaSolicitudHttp = in.readLine();
-
         System.out.println("Request: " + lineaDeLaSolicitudHttp);
-        StringTokenizer partesSolicitud = new StringTokenizer(lineaDeLaSolicitudHttp);
 
+        StringTokenizer partesSolicitud = new StringTokenizer(lineaDeLaSolicitudHttp);
         String metodo = partesSolicitud.nextToken();
         String archivo = partesSolicitud.nextToken();
+
+
         System.out.println("Method: " + metodo);
         System.out.println("File: " + archivo);
+
+        // Si la solicitud es para la raíz ("/"), devuelve success.html - para que cuando se pruebe en el browser con localhost:6789 aparezca una pagina
+        if (archivo.equals("/")) {
+            archivo = "/success.html";
+        }
 
         // Abre el archivo solicitado.
         InputStream inputStream = ClassLoader.getSystemResourceAsStream("." + archivo);
         String estado = stateType(inputStream);
         System.out.println("State: "+estado);
 
+        //404 si el archivo solicitado no se encuentra
         if(inputStream == null) {
             inputStream = ClassLoader.getSystemResourceAsStream("./404.html" );
             archivo = "/404.html";
         }
 
+        // Obtiene el tamaño del archivo para enviarlo en la cabecera HTTP
         File file = new File("src/main/resources" + archivo);
         int filesize = (int) file.length();
 
+        //enviar el cabeceras HTTP
         enviarString("HTTP/1.1 "+ estado + CRLF, out);
         enviarString("Content-Type:" + contentType(archivo) + "charset=UTF-8" + CRLF,out);
         enviarString("Content-Length: " + filesize + CRLF,out);
